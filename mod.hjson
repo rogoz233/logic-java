@@ -1,7 +1,7 @@
 name: "java-to-mlog"
 displayName: "Java to Mlog Compiler"
 author: "YourName"
-main: "mlogcompiler.MlogCompilerMod"
+main: "example.ExampleJavaMod"
 description: "Компилирует подмножество Java кода в Mindustry Logic (Mlog) прямо внутри игры."
 version: "1.0"
 minGameVersion: "154" # Для версии V8
