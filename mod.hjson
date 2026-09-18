@@ -1,8 +1,8 @@
-displayName: "Java Logic Extension"
-name: "logic-java-ext"
-author: "rogoz233"
-main: "example.ExampleJavaMod"
-description: "Extends standard processor logic capabilities with custom Java instructions."
+name: "java-to-mlog"
+displayName: "Java to Mlog Compiler"
+author: "YourName"
+main: "mlogcompiler.MlogCompilerMod"
+description: "Компилирует подмножество Java кода в Mindustry Logic (Mlog) прямо внутри игры."
 version: "1.0"
-minGameVersion: "154"
-java: true
+minGameVersion: "154" # Для версии V8
+hidden: false
