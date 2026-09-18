@@ -2,59 +2,92 @@ package example;
 
 import mindustry.mod.Mod;
 import mindustry.ui.dialogs.BaseDialog;
+import mindustry.Vars;
 import arc.Core;
 import arc.util.Time;
+import mindustry.world.blocks.defense.turrets.ItemTurret;
+import mindustry.content.Items;
+import mindustry.type.Category;
 
 public class ExampleJavaMod extends Mod {
+    
+    // 1. Создаем и регистрируем кастомный блок (турель) в контенте игры
+    public static ItemTurret javaToMlogTurret;
+
+    @Override
+    public void load() {
+        // Метод load() используется для добавления блоков, турелей и предметов
+        javaToMlogTurret = new ItemTurret("java-mlog-turret") {{
+            localizedName = "Java Compiler Turret";
+            description = "Кастомная турель из нашего Java мода. Стреляет кремнием и медью.";
+            health = 1200;
+            size = 2;
+            range = 220f;
+            reload = 15f;
+            ammo(
+                Items.copper, mindustry.content.Fx.instShoot,
+                Items.silicon, mindustry.content.Fx.instBomb
+            );
+            requirements(Category.turret, with(Items.copper, 60, Items.lead, 40));
+        }};
+    }
+
     @Override
     public void init() {
-        // Запускаем окно через безопасный таймер (3 секунды после старта игры)
-        // Этот способ никогда не сломается при обновлениях интерфейса Mindustry
+        // Адаптивное UI окно откроется через безопасный таймер задержки в v160.4
         Time.run(180f, () -> {
             showProcessorCompilerDialog();
         });
     }
 
     private void showProcessorCompilerDialog() {
-        BaseDialog dialog = new BaseDialog("Java to Mlog Ultimate");
+        BaseDialog dialog = new BaseDialog("Java to Mlog Ultimate Pro");
         dialog.addCloseButton();
 
-        var inputArea = dialog.cont.field("", text -> {}).size(450, 140).get();
+        // Поле ввода Java (адаптивное за счёт growX)
+        var inputArea = dialog.cont.field("", text -> {}).get();
         inputArea.setMessageText(
-            "// Write Java code here\n" +
-            "unit.bind(flare);\n" +
-            "int targetX = 120;\n" +
-            "int targetY = 180;\n" +
-            "unit.move(targetX, targetY);"
+            "// 1. Endless Loop Example\n" +
+            "while(true) {\n" +
+            "    int copper = vault1.sensor(copper);\n" +
+            "    print(\"Vault copper count: \");\n" +
+            "    print(copper);\n" +
+            "    printFlush(message1);\n" +
+            "}"
         );
 
         dialog.cont.row();
 
-        var outputArea = dialog.cont.field("", text -> {}).size(450, 140).get();
-        outputArea.setMessageText("// Mlog output");
+        // Поле вывода готового Mlog
+        var outputArea = dialog.cont.field("", text -> {}).get();
+        outputArea.setMessageText("// Mlog output code here");
         outputArea.setDisabled(true);
 
+        // Строим красивую мобильную сетку интерфейса
         dialog.cont.getCells().clear();
-        dialog.cont.add(inputArea).size(450, 130).pad(4).row();
+        
+        // .growX() заставляет поля идеально подстраиваться под ширину дисплея смартфона
+        dialog.cont.add(inputArea).growX().height(160).pad(10).row();
         
         dialog.cont.button("Compile & Copy", () -> {
             String code = inputArea.getText();
-            String result = translateUltimate(code);
-            
+            String result = translateEverything(code);
             outputArea.setText(result);
-            
-            // Копируем готовый Mlog в буфер обмена вашего телефона
             Core.app.setClipboardText(result);
+            Vars.ui.showInfoFade("Mlog compiled & copied!");
         }).size(250, 45).pad(6).row();
         
-        dialog.cont.add(outputArea).size(450, 130).pad(4);
+        dialog.cont.add(outputArea).growX().height(160).pad(10);
 
         dialog.show();
     }
 
-    private String translateUltimate(String javaCode) {
+    // 2. Архитектура супер-транслятора: парсим циклы, вывод текста и переменные
+    private String translateEverything(String javaCode) {
         StringBuilder mlog = new StringBuilder();
         String[] lines = javaCode.split("\n");
+        
+        int loopStartIndex = 0;
 
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i].trim();
@@ -64,23 +97,34 @@ public class ExampleJavaMod extends Mod {
                 line = line.substring(0, line.length() - 1).trim();
             }
 
-            if (line.startsWith("unit.bind(") && line.endsWith(")")) {
-                String unitType = line.substring(line.indexOf("unit.bind(") + 10, line.lastIndexOf(")")).trim();
-                mlog.append("ubind @").append(unitType).append("\n");
+            // Обработка начала цикла while(true)
+            if (line.startsWith("while(true)") || line.startsWith("while (true)")) {
+                loopStartIndex = i; // Запоминаем строчку начала цикла
                 continue;
             }
 
-            if (line.startsWith("unit.move(") && line.endsWith(")")) {
-                String args = line.substring(line.indexOf("unit.move(") + 10, line.lastIndexOf(")")).trim();
-                if (args.contains(",")) {
-                    int comma = args.indexOf(",");
-                    String cx = args.substring(0, comma).trim();
-                    String cy = args.substring(comma + 1).trim();
-                    mlog.append("ucontrol move ").append(cx).append(" ").append(cy).append(" 0 0 0\n");
-                }
+            // Вывод статичного текста: print("text"); -> print "text"
+            if (line.startsWith("print(\"") && line.endsWith("\")")) {
+                String txt = line.substring(line.indexOf("print(\"") + 7, line.lastIndexOf("\")"));
+                mlog.append("print \"").append(txt).append("\"\n");
                 continue;
             }
 
+            // Вывод значений переменных: print(copper); -> print copper
+            if (line.startsWith("print(") && line.endsWith(")")) {
+                String varName = line.substring(line.indexOf("print(") + 6, line.lastIndexOf(")")).trim();
+                mlog.append("print ").append(varName).append("\n");
+                continue;
+            }
+
+            // Вывод на экран (Flush): printFlush(message1); -> printflush message1
+            if (line.startsWith("printFlush(") && line.endsWith(")")) {
+                String msg = line.substring(line.indexOf("printFlush(") + 11, line.lastIndexOf(")")).trim();
+                mlog.append("printflush ").append(msg).append("\n");
+                continue;
+            }
+
+            // Датчики ресурсов построек
             if (line.contains(".sensor(")) {
                 int eq = line.indexOf("=");
                 String varPart = line.substring(0, eq).replace("int", "").replace("double", "").replace("float", "").trim();
@@ -92,14 +136,7 @@ public class ExampleJavaMod extends Mod {
                 continue;
             }
 
-            if (line.contains(".control(")) {
-                int dot = line.indexOf(".");
-                String building = line.substring(0, dot).trim();
-                String state = line.substring(line.indexOf(".control(") + 9, line.indexOf(")")).trim();
-                mlog.append("control enabled ").append(building).append(" ").append(state).append("\n");
-                continue;
-            }
-
+            // Математические операции
             if (line.contains("=") && (line.contains("+") || line.contains("-") || line.contains("*") || line.contains("/"))) {
                 int eq = line.indexOf("=");
                 String target = line.substring(0, eq).trim();
@@ -115,6 +152,7 @@ public class ExampleJavaMod extends Mod {
                 continue;
             }
 
+            // Простое присваивание переменных
             if (line.contains("=")) {
                 int eq = line.indexOf("=");
                 String varName = line.substring(0, eq).replace("int", "").replace("double", "").replace("float", "").trim();
@@ -123,10 +161,16 @@ public class ExampleJavaMod extends Mod {
                 continue;
             }
 
-            if (!line.equals("{") && !line.equals("}") && !line.equals("else {")) {
+            // Обработка закрытия цикла: } -> прыжок на начало цикла в Mlog
+            if (line.equals("}")) {
+                mlog.append("jump 0 always\n"); // Зацикливание выполнения в процессоре
+                continue;
+            }
+
+            if (!line.equals("{") && !line.equals("else {")) {
                 mlog.append("# ").append(line).append("\n");
             }
         }
         return mlog.toString();
     }
-                    }
+}
