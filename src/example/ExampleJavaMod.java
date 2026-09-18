@@ -2,6 +2,7 @@ package example;
 
 import mindustry.mod.*;
 import mindustry.logic.*;
+import mindustry.logic.LAssemble;
 import arc.util.*;
 
 public class ExampleJavaMod extends Mod {
@@ -14,7 +15,7 @@ public class ExampleJavaMod extends Mod {
     public void init() {
         Log.info("Registering custom mlog instructions...");
 
-        // Регистрируем команду "hello" в парсер игры
+        // Регистрируем команду "hello" в парсер игры с правильным регистром класса LAssemble
         LAssemble.instructions.put("hello", (args) -> {
             String targetVariable = args.length > 1 ? args : null;
             return new CustomHelloInstruction(targetVariable);
@@ -42,4 +43,3 @@ public class ExampleJavaMod extends Mod {
         }
     }
 }
-
