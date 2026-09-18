@@ -1,4 +1,4 @@
-package example;
+package example; // Обязательно 'example'
 
 import mindustry.mod.Mod;
 import mindustry.ui.dialogs.BaseDialog;
@@ -25,8 +25,6 @@ public class ExampleJavaMod extends Mod {
 
         dialog.cont.button("Скомпилировать", () -> {
             String javaCode = textArea.getText();
-            
-            // Вызываем локальный метод вместо внешнего класса
             String mlogResult = translateJavaToMlog(javaCode);
             
             Core.app.setClipboardText(mlogResult);
@@ -36,7 +34,6 @@ public class ExampleJavaMod extends Mod {
         dialog.show();
     }
 
-    // Вся логика теперь находится прямо здесь
     private String translateJavaToMlog(String javaCode) {
         StringBuilder mlog = new StringBuilder();
         String[] lines = javaCode.split("\n");
@@ -86,4 +83,4 @@ public class ExampleJavaMod extends Mod {
         }
         return mlog.toString();
     }
-            }
+}
