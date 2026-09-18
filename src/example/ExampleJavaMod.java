@@ -14,9 +14,9 @@ public class ExampleJavaMod extends Mod {
     
     public static ItemTurret javaToMlogTurret;
 
-    // Специальный метод для инициализации контента блоков без @Override
-    // Это гарантирует, что текстуры турели загрузятся ДО открытия вкладки строительства
-    public void load() {
+    // Используем дефолтный конструктор класса мода — в Mindustry V8 это самый ранний 
+    // и гарантированный способ зарегистрировать кастомный блок, чтобы он появился в меню
+    public ExampleJavaMod() {
         javaToMlogTurret = new ItemTurret("java-mlog-turret") {{
             localizedName = "Java Compiler Turret";
             description = "Кастомная турель из нашего Java мода. Стреляет кремнием и медью.";
@@ -68,7 +68,6 @@ public class ExampleJavaMod extends Mod {
 
         dialog.cont.getCells().clear();
         
-        // Настройка адаптивного интерфейса по ширине дисплея (.growX)
         dialog.cont.add(inputArea).growX().height(150).pad(10).row();
         
         dialog.cont.button("Compile & Copy", () -> {
