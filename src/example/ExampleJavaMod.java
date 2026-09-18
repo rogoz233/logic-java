@@ -10,23 +10,21 @@ import mindustry.game.EventType.ClientLoadEvent;
 public class ExampleJavaMod extends Mod {
     @Override
     public void init() {
-        // Ждем загрузки клиента игры для безопасной модификации UI процессоров
         Events.run(ClientLoadEvent.class, () -> {
-            
-            // Находим стандартный интерфейс редактирования логики процессора и добавляем кнопку
-            Vars.ui.logic.buttons.button("Java -> Mlog", () -> {
-                showProcessorCompilerDialog();
-            }).size(160, 45).pad(4);
-            
+            // Безопасно добавляем кнопку в панель кнопок редактора процессора
+            if(Vars.ui != null && Vars.ui.logic != null && Vars.ui.logic.buttons != null){
+                Vars.ui.logic.buttons.button("Java -> Mlog", () -> {
+                    showProcessorCompilerDialog();
+                }).size(160, 45).pad(4);
+            }
         });
     }
 
     private void showProcessorCompilerDialog() {
-        BaseDialog dialog = new BaseDialog("Java to Mlog Compiler");
-        dialog.addCloseButton(); // Кнопка закрытия появится в самом низу
+        BaseDialog dialog = new BaseDialog("Java to Mlog Pro");
+        dialog.addCloseButton();
 
-        // Поле ввода кода Java (высота 150 - идеально для мобильного экрана)
-        var inputArea = dialog.cont.field("", text -> {}).size(450, 150).get();
+        var inputArea = dialog.cont.field("", text -> {}).size(450, 140).get();
         inputArea.setMessageText(
             "// Write Java code here\n" +
             "unit.bind(flare);\n" +
@@ -37,33 +35,28 @@ public class ExampleJavaMod extends Mod {
 
         dialog.cont.row();
 
-        // Поле вывода скомпилированного Mlog кода
-        var outputArea = dialog.cont.field("", text -> {}).size(450, 150).get();
+        var outputArea = dialog.cont.field("", text -> {}).size(450, 140).get();
         outputArea.setMessageText("// Mlog output");
         outputArea.setDisabled(true);
 
-        // Пересобираем разметку элементов управления внутри диалогового окна
-        dialog.cont.getCells().clear(); // Очищаем дефолтные отступы
-        
-        // Позиционируем элементы вертикально в столбик
-        dialog.cont.add(inputArea).size(450, 140).pad(6).row();
+        dialog.cont.getCells().clear();
+        dialog.cont.add(inputArea).size(450, 130).pad(4).row();
         
         dialog.cont.button("Compile & Apply", () -> {
             String code = inputArea.getText();
             String result = translateUltimate(code);
             
-            // Выводим результат в нижнее текстовое поле
             outputArea.setText(result);
             
-            // Автоматически вставляем скомпилированный Mlog прямо в открытый процессор!
-            Vars.ui.logic.setText(result);
+            if(Vars.ui != null && Vars.ui.logic != null){
+                Vars.ui.logic.setText(result);
+            }
             
-            // Дублируем код в буфер обмена телефона
             Core.app.setClipboardText(result);
             Vars.ui.showInfoFade("Injected into Processor!");
-        }).size(260, 45).pad(8).row();
+        }).size(250, 45).pad(6).row();
         
-        dialog.cont.add(outputArea).size(450, 140).pad(6);
+        dialog.cont.add(outputArea).size(450, 130).pad(4);
 
         dialog.show();
     }
@@ -80,53 +73,68 @@ public class ExampleJavaMod extends Mod {
                 line = line.substring(0, line.length() - 1).trim();
             }
 
+            // 1. Привязка юнитов
             if (line.startsWith("unit.bind(") && line.endsWith(")")) {
                 String unitType = line.substring(line.indexOf("unit.bind(") + 10, line.lastIndexOf(")")).trim();
                 mlog.append("ubind @").append(unitType).append("\n");
                 continue;
             }
 
+            // 2. Движение юнитов
             if (line.startsWith("unit.move(") && line.endsWith(")")) {
                 String args = line.substring(line.indexOf("unit.move(") + 10, line.lastIndexOf(")")).trim();
-                String[] coords = args.split(",");
-                if (coords.length >= 2) {
-                    mlog.append("ucontrol move ").append(coords[0].trim()).append(" ").append(coords[1].trim()).append(" 0 0 0\n");
+                if (args.contains(",")) {
+                    int comma = args.indexOf(",");
+                    String cx = args.substring(0, comma).trim();
+                    String cy = args.substring(comma + 1).trim();
+                    mlog.append("ucontrol move ").append(cx).append(" ").append(cy).append(" 0 0 0\n");
                 }
                 continue;
             }
 
+            // 3. Датчики ресурсов
             if (line.contains(".sensor(")) {
-                String varPart = line.substring(0, line.indexOf("=")).replace("int", "").replace("double", "").replace("float", "").trim();
-                String callPart = line.substring(line.indexOf("=") + 1).trim();
-                String building = callPart.substring(0, callPart.indexOf(".")).trim();
+                int eq = line.indexOf("=");
+                String varPart = line.substring(0, eq).replace("int", "").replace("double", "").replace("float", "").trim();
+                String callPart = line.substring(eq + 1).trim();
+                int dot = callPart.indexOf(".");
+                String building = callPart.substring(0, dot).trim();
                 String resource = callPart.substring(callPart.indexOf(".sensor(") + 8, callPart.indexOf(")")).trim();
                 mlog.append("sensor ").append(varPart).append(" ").append(building).append(" @").append(resource).append("\n");
                 continue;
             }
 
+            // 4. Управление блоками
             if (line.contains(".control(")) {
-                String building = line.substring(0, line.indexOf(".")).trim();
+                int dot = line.indexOf(".");
+                String building = line.substring(0, dot).trim();
                 String state = line.substring(line.indexOf(".control(") + 9, line.indexOf(")")).trim();
                 mlog.append("control enabled ").append(building).append(" ").append(state).append("\n");
                 continue;
             }
 
+            // 5. Математические операции
             if (line.contains("=") && (line.contains("+") || line.contains("-") || line.contains("*") || line.contains("/"))) {
-                String[] parts = line.split("=");
-                String target = parts[0].trim();
-                String expr = parts[1].trim();
-                String op = expr.contains("+") ? "+" : expr.contains("-") ? "-" : expr.contains("*") ? "*" : "/";
+                int eq = line.indexOf("=");
+                String target = line.substring(0, eq).trim();
+                String expr = line.substring(eq + 1).trim();
                 
-                String[] vars = expr.split("\\" + op);
+                String op = expr.contains("+") ? "+" : expr.contains("-") ? "-" : expr.contains("*") ? "*" : "/";
+                int opIdx = expr.indexOf(op);
+                String v1 = expr.substring(0, opIdx).trim();
+                String v2 = expr.substring(opIdx + 1).trim();
+                
                 String mlogOp = op.equals("+") ? "add" : op.equals("-") ? "sub" : op.equals("*") ? "mul" : "div";
-                mlog.append("op ").append(mlogOp).append(" ").append(target).append(" ").append(vars[0].trim()).append(" ").append(vars[1].trim()).append("\n");
+                mlog.append("op ").append(mlogOp).append(" ").append(target).append(" ").append(v1).append(" ").append(v2).append("\n");
                 continue;
             }
 
+            // 6. Простое присваивание
             if (line.contains("=")) {
-                String[] parts = line.split("=");
-                String varName = parts[0].replace("int", "").replace("double", "").replace("float", "").trim();
-                mlog.append("set ").append(varName).append(" ").append(parts[1].trim()).append("\n");
+                int eq = line.indexOf("=");
+                String varName = line.substring(0, eq).replace("int", "").replace("double", "").replace("float", "").trim();
+                String value = line.substring(eq + 1).trim();
+                mlog.append("set ").append(varName).append(" ").append(value).append("\n");
                 continue;
             }
 
@@ -136,4 +144,4 @@ public class ExampleJavaMod extends Mod {
         }
         return mlog.toString();
     }
-                }
+                        }
