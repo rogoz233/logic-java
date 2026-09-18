@@ -1,33 +1,45 @@
 package example;
 
-import arc.*;
-import arc.util.*;
-import mindustry.game.EventType.*;
 import mindustry.mod.*;
-import mindustry.ui.dialogs.*;
+import mindustry.logic.*;
+import arc.util.*;
 
-public class ExampleJavaMod extends Mod{
+public class ExampleJavaMod extends Mod {
 
-    public ExampleJavaMod(){
-        Log.info("Loaded ExampleJavaMod constructor.");
-
-        //listen for game load event
-        Events.on(ClientLoadEvent.class, e -> {
-            //show dialog upon startup
-            Time.runTask(10f, () -> {
-                BaseDialog dialog = new BaseDialog("frog");
-                dialog.cont.add("behold").row();
-                //mod sprites are prefixed with the mod name (this mod is called 'example-java-mod' in its config)
-                dialog.cont.image(Core.atlas.find("example-java-mod-frog")).pad(20f).row();
-                dialog.cont.button("I see", dialog::hide).size(100f, 50f);
-                dialog.show();
-            });
-        });
+    public ExampleJavaMod() {
+        Log.info("Loading Java Logic Extension...");
     }
 
     @Override
-    public void loadContent(){
-        Log.info("Loading some example content.");
+    public void init() {
+        Log.info("Registering custom mlog instructions...");
+
+        // Регистрируем команду "hello" в парсер игры
+        LAssemble.instructions.put("hello", (args) -> {
+            String targetVariable = args.length > 1 ? args : null;
+            return new CustomHelloInstruction(targetVariable);
+        });
+
+        Log.info("Instruction 'hello' successfully added!");
     }
 
+    public static class CustomHelloInstruction implements LExecutor.LInstruction {
+        public String varName;
+
+        public CustomHelloInstruction(String varName) {
+            this.varName = varName;
+        }
+
+        @Override
+        public void run(LExecutor exec) {
+            if (varName != null) {
+                // Читаем числовое значение переменной из процессора
+                double value = exec.getVar(varName).numval; 
+                exec.textBuffer.append("Java says: ").append(value).append("\n");
+            } else {
+                exec.textBuffer.append("Hello from Java Mod!\n");
+            }
+        }
+    }
 }
+
