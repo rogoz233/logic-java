@@ -10,42 +10,62 @@ import mindustry.game.EventType.ClientLoadEvent;
 public class ExampleJavaMod extends Mod {
     @Override
     public void init() {
+        // Ждем загрузки клиента игры для безопасной модификации UI процессоров
         Events.run(ClientLoadEvent.class, () -> {
-            BaseDialog dialog = new BaseDialog("Java to Mlog Ultimate");
-            dialog.addCloseButton();
             
-            // Левое окно: Поле ввода Java-кода
-            var inputArea = dialog.cont.field("", text -> {}).size(350, 400).get();
-            inputArea.setMessageText(
-                "// Control Units via Java\n" +
-                "unit.bind(flare);\n" +
-                "int targetX = 120;\n" +
-                "int targetY = 180;\n" +
-                "unit.move(targetX, targetY);"
-            );
-
-            // Правое окно: Поле вывода готового Mlog-кода (только для чтения)
-            var outputArea = dialog.cont.field("", text -> {}).size(350, 400).get();
-            outputArea.setMessageText("// Mlog code will appear here");
-            outputArea.setDisabled(true); // Защищаем от случайного стирания на клавиатуре
-
-            dialog.cont.row();
-
-            // Кнопка компиляции
-            dialog.cont.button("Compile & Copy", () -> {
-                String code = inputArea.getText();
-                String result = translateUltimate(code);
-                
-                // Выводим скомпилированный код на экран телефона!
-                outputArea.setText(result);
-                
-                // Дублируем в буфер обмена
-                Core.app.setClipboardText(result);
-                Vars.ui.showInfoFade("Compiled and Copied!");
-            }).size(250, 50);
-
-            dialog.show();
+            // Находим стандартный интерфейс редактирования логики процессора и добавляем кнопку
+            Vars.ui.logic.buttons.button("Java -> Mlog", () -> {
+                showProcessorCompilerDialog();
+            }).size(160, 45).pad(4);
+            
         });
+    }
+
+    private void showProcessorCompilerDialog() {
+        BaseDialog dialog = new BaseDialog("Java to Mlog Compiler");
+        dialog.addCloseButton(); // Кнопка закрытия появится в самом низу
+
+        // Поле ввода кода Java (высота 150 - идеально для мобильного экрана)
+        var inputArea = dialog.cont.field("", text -> {}).size(450, 150).get();
+        inputArea.setMessageText(
+            "// Write Java code here\n" +
+            "unit.bind(flare);\n" +
+            "int targetX = 120;\n" +
+            "int targetY = 180;\n" +
+            "unit.move(targetX, targetY);"
+        );
+
+        dialog.cont.row();
+
+        // Поле вывода скомпилированного Mlog кода
+        var outputArea = dialog.cont.field("", text -> {}).size(450, 150).get();
+        outputArea.setMessageText("// Mlog output");
+        outputArea.setDisabled(true);
+
+        // Пересобираем разметку элементов управления внутри диалогового окна
+        dialog.cont.getCells().clear(); // Очищаем дефолтные отступы
+        
+        // Позиционируем элементы вертикально в столбик
+        dialog.cont.add(inputArea).size(450, 140).pad(6).row();
+        
+        dialog.cont.button("Compile & Apply", () -> {
+            String code = inputArea.getText();
+            String result = translateUltimate(code);
+            
+            // Выводим результат в нижнее текстовое поле
+            outputArea.setText(result);
+            
+            // Автоматически вставляем скомпилированный Mlog прямо в открытый процессор!
+            Vars.ui.logic.setText(result);
+            
+            // Дублируем код в буфер обмена телефона
+            Core.app.setClipboardText(result);
+            Vars.ui.showInfoFade("Injected into Processor!");
+        }).size(260, 45).pad(8).row();
+        
+        dialog.cont.add(outputArea).size(450, 140).pad(6);
+
+        dialog.show();
     }
 
     private String translateUltimate(String javaCode) {
@@ -60,14 +80,12 @@ public class ExampleJavaMod extends Mod {
                 line = line.substring(0, line.length() - 1).trim();
             }
 
-            // 1. Привязка юнита: unit.bind(flare); -> ubind @flare
             if (line.startsWith("unit.bind(") && line.endsWith(")")) {
                 String unitType = line.substring(line.indexOf("unit.bind(") + 10, line.lastIndexOf(")")).trim();
                 mlog.append("ubind @").append(unitType).append("\n");
                 continue;
             }
 
-            // 2. Движение юнита: unit.move(x, y); -> ucontrol move x y 0 0 0
             if (line.startsWith("unit.move(") && line.endsWith(")")) {
                 String args = line.substring(line.indexOf("unit.move(") + 10, line.lastIndexOf(")")).trim();
                 String[] coords = args.split(",");
@@ -77,7 +95,6 @@ public class ExampleJavaMod extends Mod {
                 continue;
             }
 
-            // 3. Датчики построек: int copper = vault1.sensor(copper);
             if (line.contains(".sensor(")) {
                 String varPart = line.substring(0, line.indexOf("=")).replace("int", "").replace("double", "").replace("float", "").trim();
                 String callPart = line.substring(line.indexOf("=") + 1).trim();
@@ -87,7 +104,6 @@ public class ExampleJavaMod extends Mod {
                 continue;
             }
 
-            // 4. Управление постройками: switch1.control(enabled);
             if (line.contains(".control(")) {
                 String building = line.substring(0, line.indexOf(".")).trim();
                 String state = line.substring(line.indexOf(".control(") + 9, line.indexOf(")")).trim();
@@ -95,7 +111,6 @@ public class ExampleJavaMod extends Mod {
                 continue;
             }
 
-            // 5. Математические вычисления (add, sub, mul, div)
             if (line.contains("=") && (line.contains("+") || line.contains("-") || line.contains("*") || line.contains("/"))) {
                 String[] parts = line.split("=");
                 String target = parts[0].trim();
@@ -108,7 +123,6 @@ public class ExampleJavaMod extends Mod {
                 continue;
             }
 
-            // 6. Простое присваивание переменных
             if (line.contains("=")) {
                 String[] parts = line.split("=");
                 String varName = parts[0].replace("int", "").replace("double", "").replace("float", "").trim();
@@ -122,5 +136,4 @@ public class ExampleJavaMod extends Mod {
         }
         return mlog.toString();
     }
-                    }
-                
+                }
