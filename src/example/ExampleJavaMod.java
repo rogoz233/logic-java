@@ -5,37 +5,8 @@ import mindustry.ui.dialogs.BaseDialog;
 import mindustry.Vars;
 import arc.Core;
 import arc.util.Time;
-import mindustry.world.blocks.defense.turrets.ItemTurret;
-import mindustry.content.Items;
-import mindustry.type.Category;
-import mindustry.type.ItemStack;
 
 public class ExampleJavaMod extends Mod {
-    
-    public static ItemTurret javaToMlogTurret;
-
-    // Используем дефолтный конструктор класса мода — в Mindustry V8 это самый ранний 
-    // и гарантированный способ зарегистрировать кастомный блок, чтобы он появился в меню
-    public ExampleJavaMod() {
-        javaToMlogTurret = new ItemTurret("java-mlog-turret") {{
-            localizedName = "Java Compiler Turret";
-            description = "Кастомная турель из нашего Java мода. Стреляет кремнием и медью.";
-            health = 1200;
-            size = 2;
-            range = 220f;
-            reload = 15f;
-            
-            ammo(
-                Items.copper, mindustry.content.Fx.instShoot,
-                Items.silicon, mindustry.content.Fx.instBomb
-            );
-            
-            requirements(Category.turret, new ItemStack[]{
-                new ItemStack(Items.copper, 60),
-                new ItemStack(Items.lead, 40)
-            });
-        }};
-    }
 
     @Override
     public void init() {
@@ -162,4 +133,5 @@ public class ExampleJavaMod extends Mod {
         }
         return mlog.toString();
     }
-        }
+                }
+                                             
