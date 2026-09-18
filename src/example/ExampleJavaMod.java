@@ -5,17 +5,23 @@ import mindustry.ui.dialogs.BaseDialog;
 import mindustry.Vars;
 import arc.Core;
 import arc.Events;
+import arc.scene.ui.layout.Table;
 import mindustry.game.EventType.ClientLoadEvent;
 
 public class ExampleJavaMod extends Mod {
     @Override
     public void init() {
         Events.run(ClientLoadEvent.class, () -> {
-            // Безопасно добавляем кнопку в панель кнопок редактора процессора
-            if(Vars.ui != null && Vars.ui.logic != null && Vars.ui.logic.buttons != null){
-                Vars.ui.logic.buttons.button("Java -> Mlog", () -> {
-                    showProcessorCompilerDialog();
-                }).size(160, 45).pad(4);
+            // Безопасно внедряем кнопку в окно логики процессора
+            if (Vars.ui != null && Vars.ui.logic != null) {
+                // Ищем или создаем область для дополнительных модовых кнопок в LogicDialog
+                Table targetTable = Vars.ui.logic.cont;
+                if (targetTable != null) {
+                    targetTable.row();
+                    targetTable.button("Java -> Mlog", () -> {
+                        showProcessorCompilerDialog();
+                    }).size(160, 42).pad(4).color(arc.graphics.Color.orange);
+                }
             }
         });
     }
@@ -48,7 +54,7 @@ public class ExampleJavaMod extends Mod {
             
             outputArea.setText(result);
             
-            if(Vars.ui != null && Vars.ui.logic != null){
+            if (Vars.ui != null && Vars.ui.logic != null) {
                 Vars.ui.logic.setText(result);
             }
             
@@ -73,14 +79,12 @@ public class ExampleJavaMod extends Mod {
                 line = line.substring(0, line.length() - 1).trim();
             }
 
-            // 1. Привязка юнитов
             if (line.startsWith("unit.bind(") && line.endsWith(")")) {
                 String unitType = line.substring(line.indexOf("unit.bind(") + 10, line.lastIndexOf(")")).trim();
                 mlog.append("ubind @").append(unitType).append("\n");
                 continue;
             }
 
-            // 2. Движение юнитов
             if (line.startsWith("unit.move(") && line.endsWith(")")) {
                 String args = line.substring(line.indexOf("unit.move(") + 10, line.lastIndexOf(")")).trim();
                 if (args.contains(",")) {
@@ -92,7 +96,6 @@ public class ExampleJavaMod extends Mod {
                 continue;
             }
 
-            // 3. Датчики ресурсов
             if (line.contains(".sensor(")) {
                 int eq = line.indexOf("=");
                 String varPart = line.substring(0, eq).replace("int", "").replace("double", "").replace("float", "").trim();
@@ -104,7 +107,6 @@ public class ExampleJavaMod extends Mod {
                 continue;
             }
 
-            // 4. Управление блоками
             if (line.contains(".control(")) {
                 int dot = line.indexOf(".");
                 String building = line.substring(0, dot).trim();
@@ -113,7 +115,6 @@ public class ExampleJavaMod extends Mod {
                 continue;
             }
 
-            // 5. Математические операции
             if (line.contains("=") && (line.contains("+") || line.contains("-") || line.contains("*") || line.contains("/"))) {
                 int eq = line.indexOf("=");
                 String target = line.substring(0, eq).trim();
@@ -129,7 +130,6 @@ public class ExampleJavaMod extends Mod {
                 continue;
             }
 
-            // 6. Простое присваивание
             if (line.contains("=")) {
                 int eq = line.indexOf("=");
                 String varName = line.substring(0, eq).replace("int", "").replace("double", "").replace("float", "").trim();
@@ -144,4 +144,4 @@ public class ExampleJavaMod extends Mod {
         }
         return mlog.toString();
     }
-                        }
+            }
