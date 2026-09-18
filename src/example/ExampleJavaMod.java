@@ -4,26 +4,17 @@ import mindustry.mod.Mod;
 import mindustry.ui.dialogs.BaseDialog;
 import mindustry.Vars;
 import arc.Core;
-import arc.Events;
 import arc.scene.ui.layout.Table;
-import mindustry.game.EventType.ClientLoadEvent;
 
 public class ExampleJavaMod extends Mod {
+    
+    // Этот метод вызывается игрой для построения окна настроек мода. 
+    // Самый безопасный и стабильный способ добавить UI без привязки к скрытым полям процессора.
     @Override
-    public void init() {
-        Events.run(ClientLoadEvent.class, () -> {
-            // Безопасно внедряем кнопку в окно логики процессора
-            if (Vars.ui != null && Vars.ui.logic != null) {
-                // Ищем или создаем область для дополнительных модовых кнопок в LogicDialog
-                Table targetTable = Vars.ui.logic.cont;
-                if (targetTable != null) {
-                    targetTable.row();
-                    targetTable.button("Java -> Mlog", () -> {
-                        showProcessorCompilerDialog();
-                    }).size(160, 42).pad(4).color(arc.graphics.Color.orange);
-                }
-            }
-        });
+    public void buildConfig(Table table) {
+        table.button("Open Java -> Mlog", () -> {
+            showProcessorCompilerDialog();
+        }).size(220, 50).pad(10);
     }
 
     private void showProcessorCompilerDialog() {
@@ -48,18 +39,15 @@ public class ExampleJavaMod extends Mod {
         dialog.cont.getCells().clear();
         dialog.cont.add(inputArea).size(450, 130).pad(4).row();
         
-        dialog.cont.button("Compile & Apply", () -> {
+        dialog.cont.button("Compile & Copy", () -> {
             String code = inputArea.getText();
             String result = translateUltimate(code);
             
             outputArea.setText(result);
             
-            if (Vars.ui != null && Vars.ui.logic != null) {
-                Vars.ui.logic.setText(result);
-            }
-            
+            // Записываем результат в буфер обмена телефона
             Core.app.setClipboardText(result);
-            Vars.ui.showInfoFade("Injected into Processor!");
+            Vars.ui.showInfoFade("Mlog copied to clipboard!");
         }).size(250, 45).pad(6).row();
         
         dialog.cont.add(outputArea).size(450, 130).pad(4);
@@ -144,4 +132,4 @@ public class ExampleJavaMod extends Mod {
         }
         return mlog.toString();
     }
-            }
+}
