@@ -14,9 +14,9 @@ public class ExampleJavaMod extends Mod {
     
     public static ItemTurret javaToMlogTurret;
 
-    @Override
-    public void init() {
-        // 1. Безопасно регистрируем кастомную турель напрямую внутри init() без лишних методов
+    // Специальный метод для инициализации контента блоков без @Override
+    // Это гарантирует, что текстуры турели загрузятся ДО открытия вкладки строительства
+    public void load() {
         javaToMlogTurret = new ItemTurret("java-mlog-turret") {{
             localizedName = "Java Compiler Turret";
             description = "Кастомная турель из нашего Java мода. Стреляет кремнием и медью.";
@@ -25,20 +25,21 @@ public class ExampleJavaMod extends Mod {
             range = 220f;
             reload = 15f;
             
-            // Настройка патронов
             ammo(
                 Items.copper, mindustry.content.Fx.instShoot,
                 Items.silicon, mindustry.content.Fx.instBomb
             );
             
-            // Чистый массив ItemStack вместо ломающегося метода with()
             requirements(Category.turret, new ItemStack[]{
                 new ItemStack(Items.copper, 60),
                 new ItemStack(Items.lead, 40)
             });
         }};
+    }
 
-        // 2. Запускаем адаптивное UI окно через безопасный таймер задержки
+    @Override
+    public void init() {
+        // Запускаем окно компилятора через безопасный таймер задержки
         Time.run(180f, () -> {
             showProcessorCompilerDialog();
         });
@@ -67,7 +68,7 @@ public class ExampleJavaMod extends Mod {
 
         dialog.cont.getCells().clear();
         
-        // .growX() заставляет поля идеально подстраиваться под ширину дисплея смартфона
+        // Настройка адаптивного интерфейса по ширине дисплея (.growX)
         dialog.cont.add(inputArea).growX().height(150).pad(10).row();
         
         dialog.cont.button("Compile & Copy", () -> {
@@ -86,8 +87,6 @@ public class ExampleJavaMod extends Mod {
     private String translateEverything(String javaCode) {
         StringBuilder mlog = new StringBuilder();
         String[] lines = javaCode.split("\n");
-        
-        int loopStartIndex = 0;
 
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i].trim();
@@ -98,7 +97,6 @@ public class ExampleJavaMod extends Mod {
             }
 
             if (line.startsWith("while(true)") || line.startsWith("while (true)")) {
-                loopStartIndex = i;
                 continue;
             }
 
@@ -165,4 +163,4 @@ public class ExampleJavaMod extends Mod {
         }
         return mlog.toString();
     }
-                    }
+        }
