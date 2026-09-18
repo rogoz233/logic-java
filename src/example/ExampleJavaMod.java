@@ -1,4 +1,4 @@
-package example; // Обязательно 'example'
+package example;
 
 import mindustry.mod.Mod;
 import mindustry.ui.dialogs.BaseDialog;
@@ -23,12 +23,12 @@ public class ExampleJavaMod extends Mod {
 
         dialog.cont.row();
 
-        dialog.cont.button("Скомпилировать", () -> {
+        dialog.cont.button("Compile", () -> {
             String javaCode = textArea.getText();
             String mlogResult = translateJavaToMlog(javaCode);
             
             Core.app.setClipboardText(mlogResult);
-            Vars.ui.showInfoFade("Скопировано!");
+            Vars.ui.showInfoFade("Copied to clipboard!");
         }).size(200, 50);
 
         dialog.show();
@@ -83,4 +83,4 @@ public class ExampleJavaMod extends Mod {
         }
         return mlog.toString();
     }
-}
+                }
