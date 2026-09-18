@@ -4,5 +4,5 @@ author: "rogoz233"
 main: "example.ExampleJavaMod"
 description: "Extends standard processor logic capabilities with custom Java instructions."
 version: "1.0"
-minGameVersion: "146"
+minGameVersion: "154"
 java: true
