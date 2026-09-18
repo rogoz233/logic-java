@@ -2,23 +2,21 @@ package example;
 
 import mindustry.mod.Mod;
 import mindustry.ui.dialogs.BaseDialog;
-import mindustry.Vars;
 import arc.Core;
-import arc.scene.ui.layout.Table;
+import arc.util.Time;
 
 public class ExampleJavaMod extends Mod {
-    
-    // Этот метод вызывается игрой для построения окна настроек мода. 
-    // Самый безопасный и стабильный способ добавить UI без привязки к скрытым полям процессора.
     @Override
-    public void buildConfig(Table table) {
-        table.button("Open Java -> Mlog", () -> {
+    public void init() {
+        // Запускаем окно через безопасный таймер (3 секунды после старта игры)
+        // Этот способ никогда не сломается при обновлениях интерфейса Mindustry
+        Time.run(180f, () -> {
             showProcessorCompilerDialog();
-        }).size(220, 50).pad(10);
+        });
     }
 
     private void showProcessorCompilerDialog() {
-        BaseDialog dialog = new BaseDialog("Java to Mlog Pro");
+        BaseDialog dialog = new BaseDialog("Java to Mlog Ultimate");
         dialog.addCloseButton();
 
         var inputArea = dialog.cont.field("", text -> {}).size(450, 140).get();
@@ -45,9 +43,8 @@ public class ExampleJavaMod extends Mod {
             
             outputArea.setText(result);
             
-            // Записываем результат в буфер обмена телефона
+            // Копируем готовый Mlog в буфер обмена вашего телефона
             Core.app.setClipboardText(result);
-            Vars.ui.showInfoFade("Mlog copied to clipboard!");
         }).size(250, 45).pad(6).row();
         
         dialog.cont.add(outputArea).size(450, 130).pad(4);
@@ -132,4 +129,4 @@ public class ExampleJavaMod extends Mod {
         }
         return mlog.toString();
     }
-}
+                    }
